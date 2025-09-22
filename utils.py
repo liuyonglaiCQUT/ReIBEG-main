@@ -18,4 +18,23 @@ def plot_heatmap(before, after, save_path, epoch):
     plt.tight_layout()
     plt.savefig(out_file, dpi=300)
     plt.close()
+
     print(f"[Heatmap] Saved: {out_file}")
+
+class EMAModel:
+    def __init__(self, parameters, power=0.999):
+        self.params = list(parameters)
+        self.power = power
+        self.shadow = [p.clone().detach() for p in self.params]
+
+    def update(self):
+        for s, p in zip(self.shadow, self.params):
+            s.data = self.power * s.data + (1 - self.power) * p.data
+
+    def apply_shadow(self):
+        for s, p in zip(self.shadow, self.params):
+            p.data.copy_(s.data)
+
+    def restore(self, backup_params):
+        for p, b in zip(self.params, backup_params):
+            p.data.copy_(b.data)
