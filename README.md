@@ -37,7 +37,7 @@
 
 ### Checkpoints are available for download here:
 
-- [Learned Checkpoint](https://drive.google.com/file/d/1zn9TmPCCUjooZsJq3LSntEDcCAT1PVul/view?usp=drive_link))
+- [Learned Checkpoint](https://drive.google.com/file/d/1zn9TmPCCUjooZsJq3LSntEDcCAT1PVul/view?usp=drive_link)
 
 **Directory Structure Example:**
 
