@@ -1,1 +1,11 @@
+# Notice: In our environment, huggingface hub=0.27.1 can meet the training requirements; But when we try to train our model on other devices, a bug occurs when huggingface hub=0.27.1. In this case, we can try other versions of huggingface hub (such as huggingface hub=0.13.2).
+cudatoolkit==11.3.1
+torch==1.11.0
+torchaudio==0.11.0
+torchvision==0.12.0
+dgl-cu113==0.9.0
 tensorboardX==2.5.1
+tqdm==4.64.0
+huggingface-hub==0.27.1
+diffusers==0.16.1
+
