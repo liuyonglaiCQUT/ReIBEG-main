@@ -10,7 +10,7 @@ from tqdm import tqdm
 import json
 import numpy as np
 from model import *
-from ema_model import EMAModel
+from diffusers.training_utils import EMAModel
 from diffusers.optimization import get_scheduler
 from torch.cuda.amp import autocast, GradScaler
 from typing import Union
@@ -21,7 +21,6 @@ class Trainer:
     def __init__(self, data_loaders, dataset, parameter):
         self.parameter = parameter
 
-        # 记录kl_loss和ranking_loss专用
         self.dataset_name = parameter['dataset']
         from datetime import datetime
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -59,7 +58,7 @@ class Trainer:
         self.scaler = GradScaler()  # ---------------------------------------------------------
 
         self.load_embed()
-        self.num_symbols = len(self.symbol2id.keys()) - 1  # one for 'PAD'
+        self.num_symbols = len(self.symbol2id.keys()) - 1
         self.pad_id = self.num_symbols
         self.ent2id = json.load(open(self.data_path + '/ent2ids'))
         self.rel2id = json.load(open(self.data_path + '/relation2ids'))
@@ -73,7 +72,7 @@ class Trainer:
         self.optimizer = torch.optim.Adam(
             self.reibeg.parameters(),
             self.learning_rate,
-            weight_decay=parameter['weight_decay']  #  L2 正则化技术，用来防止模型过拟合
+            weight_decay=parameter['weight_decay']  #  L2
         )  # optimizer
 
         self.lr_scheduler = get_scheduler(
@@ -255,11 +254,11 @@ class Trainer:
 
         return kg
 
-    def reload(self):   # 加载已经训练好的模型参数（state_dict_fb15k_best_658） 到模型 self.reibeh 中，支持从指定 checkpoint 或默认路径恢复。
-        if self.parameter['eval_ckpt'] is not None:     # 判断是否显式指定了评估阶段使用的某一轮 checkpoint（eval_ckpt），如果是 None，就走默认逻辑。
+    def reload(self):  
+        if self.parameter['eval_ckpt'] is not None:     
             state_dict_file = os.path.join(self.ckpt_dir, 'state_dict_' + self.parameter['eval_ckpt'] + '.ckpt')
         else:
-            state_dict_file = os.path.join(self.state_dir, self.parameter['state_dict_filename'])# 'state_dict_fb15k_best_658')
+            state_dict_file = os.path.join(self.state_dir, self.parameter['state_dict_filename'])# 'state_dict_fb15k_best_658'
         self.state_dict_file = state_dict_file
         logging.info('Reload state_dict_fb15k_best_658 from {}'.format(state_dict_file))
         print('reload state_dict_fb15k_best_658 from {}'.format(state_dict_file))
@@ -359,10 +358,9 @@ class Trainer:
             # sample one batch from data_loader
             self.reibeg.train()
             train_task, curr_rel = self.train_data_loader.next_batch()
-            with torch.cuda.amp.autocast():     # ----------------------------------------------------------------------
+            with torch.cuda.amp.autocast(): 
                 loss, kl_loss, _, _, ranking_loss, kl_weight = self.do_one_step(epoch=e, task=train_task, iseval=False, curr_rel=curr_rel, istest=False)
 
-            # ---------与__init__中的专用对应--------------------------------------------------
             with open(self.log_path, 'a') as f:
                 f.write(f"{e:6} | {loss:12.4f} | {kl_loss:14.4f} | {ranking_loss:10.4f} | {kl_weight:10.4f}\n")
 
@@ -490,3 +488,4 @@ class Trainer:
             t, data['MRR'], data['Hits@10'], data['Hits@5'], data['Hits@1']))
 
         return data
+
