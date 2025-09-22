@@ -43,7 +43,7 @@ def bpr_hard_negative_loss(p_score, n_score, y=None):
 class ScoreCalculator(nn.Module):
     def __init__(self, emb_dim):
         super().__init__()
-        self.head_encoder = nn.Linear(4 * emb_dim, emb_dim)     # 两个全连接层，输入4 * emb_dim，输出emb_dim
+        self.head_encoder = nn.Linear(4 * emb_dim, emb_dim)
         self.tail_encoder = nn.Linear(4 * emb_dim, emb_dim)
 
     def forward(self, h, t, r, pos_num, z):
@@ -53,16 +53,16 @@ class ScoreCalculator(nn.Module):
         pos_num : 正样本数量
         return: p_score (B, pos_num), n_score (B, neg_num)
         """
-        z_unsq = z.unsqueeze(2)  # (B, nq+nn, 1, embed_dim) 把z加一个维度，与h,r,t维度对其
+        z_unsq = z.unsqueeze(2)
 
 
         h = h + self.head_encoder(z_unsq)
         t = t + self.tail_encoder(z_unsq)
 
         # L2 norm
-        score = -torch.norm(h + r - t, p=2, dim=-1)  # (B, nq+nn)   TransE 距离函数，在最后一个维度做 L2 范数
+        score = -torch.norm(h + r - t, p=2, dim=-1) 
 
-        p_score = score[:, :pos_num]    # 根据正负样本数量进行切分,前 pos_num 个为正样本
+        p_score = score[:, :pos_num] 
         n_score = score[:, pos_num:]
         return p_score, n_score
 
@@ -168,14 +168,10 @@ class ReIBEG(nn.Module):
 
         z = torch.cat([z_pos_r, z_neg_r], dim=-1)  # (B, 2*D)
         z_q = z.unsqueeze(1).expand(-1, num_q + num_n, -1)  # (B, nq+nn, 2*D)
-
-        # 三元组拆分：实体对向量 e1, e2
+        
         que_neg_e1, que_neg_e2 = self.split_concat(query, negative)
-
-        # 关系 rel: (B, 1, 1, D) -> (B, nq+nn, 1, D)
         rel_q = rel.expand(-1, num_q + num_n, -1, -1)
 
-        # 打分
         p_score, n_score = self.score_calculator(que_neg_e1, que_neg_e2, rel_q, num_q, z_q)
 
         return p_score, n_score
@@ -220,7 +216,6 @@ class ReIBEG(nn.Module):
             z_sample, mu, logvar = self.rib_encoder(target_r, cond=global_cond, deterministic=False)
             kl_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp(), dim=-1).mean()
 
-        # 直接使用 IB 输出的 z_sample 作为最终表示
         z_without_pad = z_sample[:, :self.few * 2, :]
 
         z_pos = z_without_pad[:, :self.few]  # (B, few, embed_dim * 2)
@@ -248,14 +243,14 @@ class InformationBottleneckEncoder(nn.Module):
     def __init__(self, input_dim, latent_dim, hidden_dim, cond_dim=0):
         super().__init__()
         self.cond_dim = cond_dim
-        total_input_dim = input_dim + cond_dim  # 拼接后的总输入维度
+        total_input_dim = input_dim + cond_dim
 
         self.encoder = nn.Sequential(
             nn.Linear(total_input_dim, hidden_dim),
-            nn.LayerNorm(hidden_dim),         # 新增 LayerNorm 层
+            nn.LayerNorm(hidden_dim), 
             nn.ReLU(),
         )
-        self.fc_mu = nn.Linear(hidden_dim, latent_dim) # 两线性层，分别处理输出均值μ、指数方差
+        self.fc_mu = nn.Linear(hidden_dim, latent_dim)
         self.fc_logvar = nn.Linear(hidden_dim, latent_dim)
         self._init_weights()
 
@@ -275,14 +270,13 @@ class InformationBottleneckEncoder(nn.Module):
         B, *rest, D = x.shape  # e.g., B x N x D
         x_flat = x.view(-1, D)
 
-        # 拼接条件变量
         if cond is not None:
             if cond.dim() == 2:  # [B, D'] -> [B, 1, D'] -> [B, N, D']
                 cond = cond.unsqueeze(1).expand(-1, int(x.numel() / D / B), -1)
             cond_flat = cond.reshape(-1, cond.shape[-1])
             x_flat = torch.cat([x_flat, cond_flat], dim=-1)  # [B*N, D + D']
 
-        h = self.encoder(x_flat)  # LayerNorm 会自动适配维度
+        h = self.encoder(x_flat)
         mu = self.fc_mu(h).view(B, *rest, -1)
         logvar = self.fc_logvar(h).view(B, *rest, -1)
         logvar = torch.clamp(logvar, min=-10.0, max=10.0)
@@ -405,4 +399,5 @@ class GatedCNN_Attn(nn.Module):
 
         out = self.out(context)  # [B, out_size]
         return out.view(B, 1, 1, self.out_size)
+
 
